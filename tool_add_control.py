@@ -1,10 +1,10 @@
 import sys
 import os
 
-assert len(sys.argv) == 3, 'Args are wrong.'
+#assert len(sys.argv) == 3, 'Args are wrong.'
 
-input_path = sys.argv[1]
-output_path = sys.argv[2]
+input_path = '/home/baoluli/1.code/3.ControlNet/models/v2-1_512-ema-pruned.ckpt'#sys.argv[1]
+output_path = '/home/baoluli/1.code/3.ControlNet/models/<11>.ckpt'#sys.argv[2]
 
 assert os.path.exists(input_path), 'Input model does not exist.'
 assert not os.path.exists(output_path), 'Output filename already exists.'
@@ -24,7 +24,7 @@ def get_node_name(name, parent_name):
     return True, name[len(parent_name):]
 
 
-model = create_model(config_path='./models/cldm_v15.yaml')
+model = create_model(config_path='/home/baoluli/1.code/3.ControlNet/models/<11>.yaml')
 
 pretrained_weights = torch.load(input_path)
 if 'state_dict' in pretrained_weights:

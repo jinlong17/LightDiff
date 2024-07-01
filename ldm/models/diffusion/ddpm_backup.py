@@ -519,6 +519,7 @@ class DDPM(pl.LightningModule):
         opt = torch.optim.AdamW(params, lr=lr)
         return opt
 
+
 class LatentDiffusion(DDPM):
     """main class"""
 
@@ -613,9 +614,7 @@ class LatentDiffusion(DDPM):
 
     def instantiate_first_stage(self, config):
         model = instantiate_from_config(config)
-        ##########TODO:jinlong
         self.first_stage_model = model.eval()
-        # self.first_stage_model = model
         self.first_stage_model.train = disabled_train
         for param in self.first_stage_model.parameters():
             param.requires_grad = False
@@ -824,13 +823,8 @@ class LatentDiffusion(DDPM):
                 z = torch.argmax(z.exp(), dim=1).long()
             z = self.first_stage_model.quantize.get_codebook_entry(z, shape=None)
             z = rearrange(z, 'b h w c -> b c h w').contiguous()
-    
+
         z = 1. / self.scale_factor * z
-        #####TODO:jinlong
-        # if self.train:
-        #     z =  z
-        # else:
-        #     z = 1. / self.scale_factor * z
         return self.first_stage_model.decode(z)
 
     @torch.no_grad()
@@ -892,8 +886,6 @@ class LatentDiffusion(DDPM):
         noise = default(noise, lambda: torch.randn_like(x_start))
         x_noisy = self.q_sample(x_start=x_start, t=t, noise=noise)
         model_output = self.apply_model(x_noisy, t, cond)
-
-
 
         loss_dict = {}
         prefix = 'train' if self.training else 'val'

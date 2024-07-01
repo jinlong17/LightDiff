@@ -15,11 +15,107 @@ from torchvision.utils import make_grid
 from ldm.modules.attention import SpatialTransformer
 from ldm.modules.diffusionmodules.openaimodel import UNetModel, TimestepEmbedSequential, ResBlock, Downsample, AttentionBlock
 from ldm.models.diffusion.ddpm import LatentDiffusion
-from ldm.util import log_txt_as_img, exists, instantiate_from_config
+from ldm.util import log_txt_as_img, exists, instantiate_from_config,default
 from ldm.models.diffusion.ddim import DDIMSampler
 
 
+####################TODO:jinlong
+import os
+from argparse import ArgumentParser
+
+from cldm.mmd_loss import MMDLoss
+
+import pytorch_lightning as pl
+
+# from BEVDepth.bevdepth.callbacks.ema import EMACallback
+from BEVDepth.bevdepth.utils.torch_dist import all_gather_object, synchronize
+from BEVDepth.bevdepth.exps.nuscenes.base_exp import BEVDepthLightningModel
+import torch 
+
+mmdloss = MMDLoss(4)
+
+class CAM_Module(nn.Module):
+    """ Channel attention module"""
+    def __init__(self, in_dim):
+        super(CAM_Module, self).__init__()
+        self.chanel_in = in_dim
+
+
+        self.gamma = nn.Parameter(torch.zeros(1))
+        self.softmax = nn.Softmax(dim=-1)
+    def forward(self,x):
+        """
+            inputs :
+                x : input feature maps( B X C X H X W)
+            returns :
+                out : attention value + input feature
+                attention: B X C X C
+        """
+        m_batchsize, C, height, width = x.size()
+        proj_query = x.view(m_batchsize, C, -1)
+        proj_key = x.view(m_batchsize, C, -1).permute(0, 2, 1)
+        energy = torch.bmm(proj_query, proj_key)
+        energy_new = torch.max(energy, -1, keepdim=True)[0].expand_as(energy)-energy
+        attention = self.softmax(energy_new)
+        proj_value = x.view(m_batchsize, C, -1)
+
+        out = torch.bmm(attention, proj_value)
+        out = out.view(m_batchsize, C, height, width)
+
+        out = self.gamma*out + x
+        return out
+    
+
+
+extra_trainer_config_args={}
+exp_name='base_exp'
+
+parent_parser = ArgumentParser(add_help=False)
+parent_parser = pl.Trainer.add_argparse_args(parent_parser)
+parent_parser.add_argument('-e',
+                        '--evaluate',
+                        dest='evaluate',
+                        action='store_true',
+                        default=True,
+                        help='evaluate model on validation set')
+parent_parser.add_argument('-p',
+                        '--predict',
+                        dest='predict',
+                        action='store_true',
+                        #    default=True,
+                        help='predict model on testing set')
+parent_parser.add_argument('-b', '--batch_size_per_device', default=1, type=int)
+parent_parser.add_argument('--seed',
+                        type=int,
+                        default=1,
+                        help='seed for initializing training.')
+parent_parser.add_argument('--ckpt_path',default='/home/jinlongli/1.Detection_Set/Dark_Diffusion/ControlNet/BEVDepth/BEVDepth_checkpoint/bev_depth_lss_r50_256x704_128x128_24e_2key.pth',  type=str)
+
+
+parser = BEVDepthLightningModel.add_model_specific_args(parent_parser)
+parser.set_defaults(profiler='simple',
+                    deterministic=False,
+                    max_epochs=extra_trainer_config_args.get('epochs', 24),
+                    accelerator='ddp',
+                    num_sanity_val_steps=0,
+                    gradient_clip_val=5,
+                    limit_val_batches=0,
+                    enable_checkpointing=True,
+                    precision=16,
+                    default_root_dir=os.path.join('./outputs/', exp_name))
+args = parser.parse_args()
+args.gpus=1
+
+args_1 = args
+
+#########################TODO: jinlong 
+bevdepth_model = BEVDepthLightningModel(**vars(args_1))
+# bevdepth_model = []
+
+
+
 class ControlledUnetModel(UNetModel):
+
     def forward(self, x, timesteps=None, context=None, control=None, only_mid_control=False, **kwargs):
         hs = []
         with torch.no_grad():
@@ -43,7 +139,6 @@ class ControlledUnetModel(UNetModel):
 
         h = h.type(x.dtype)
         return self.out(h)
-
 
 class ControlNet(nn.Module):
     def __init__(
@@ -75,8 +170,26 @@ class ControlNet(nn.Module):
             num_attention_blocks=None,
             disable_middle_self_attn=False,
             use_linear_in_transformer=False,
+            bl_condition_num = 1,
+            bl_condition_channel = (3),
+            with_condition_attentation = False,
+            with_gamma = False
     ):
         super().__init__()
+
+        ###TODO:added by baolu
+        self.bl_condition_num = bl_condition_num
+        self.bl_condition_channel = bl_condition_channel
+        self.with_condition_attentation = with_condition_attentation
+        self.with_gamma = with_gamma
+        if self.with_condition_attentation == True:
+            self.condition_attn = CAM_Module(in_dim = 320 * self.bl_condition_num)
+            
+        if self.with_gamma == True:
+            self.gamma = nn.Parameter(torch.randn(320,64,64),requires_grad=True)
+
+
+
         if use_spatial_transformer:
             assert context_dim is not None, 'Fool!! You forgot to include the dimension of your cross-attention conditioning...'
 
@@ -144,23 +257,112 @@ class ControlNet(nn.Module):
         )
         self.zero_convs = nn.ModuleList([self.make_zero_conv(model_channels)])
 
-        self.input_hint_block = TimestepEmbedSequential(
-            conv_nd(dims, hint_channels, 16, 3, padding=1),
-            nn.SiLU(),
-            conv_nd(dims, 16, 16, 3, padding=1),
-            nn.SiLU(),
-            conv_nd(dims, 16, 32, 3, padding=1, stride=2),
-            nn.SiLU(),
-            conv_nd(dims, 32, 32, 3, padding=1),
-            nn.SiLU(),
-            conv_nd(dims, 32, 96, 3, padding=1, stride=2),
-            nn.SiLU(),
-            conv_nd(dims, 96, 96, 3, padding=1),
-            nn.SiLU(),
-            conv_nd(dims, 96, 256, 3, padding=1, stride=2),
-            nn.SiLU(),
-            zero_module(conv_nd(dims, 256, model_channels, 3, padding=1))
-        )
+        if self.bl_condition_num == 1:
+            self.input_hint_block = TimestepEmbedSequential(
+                #conv_nd(dims, bl_condition_channel, 16, 3, padding=1),
+                conv_nd(dims, 3, 16, 3, padding=1),###########################################################
+                nn.SiLU(),
+                conv_nd(dims, 16, 16, 3, padding=1),
+                nn.SiLU(),
+                conv_nd(dims, 16, 32, 3, padding=1, stride=2),
+                nn.SiLU(),
+                conv_nd(dims, 32, 32, 3, padding=1),
+                nn.SiLU(),
+                conv_nd(dims, 32, 96, 3, padding=1, stride=2),
+                nn.SiLU(),
+                conv_nd(dims, 96, 96, 3, padding=1),
+                nn.SiLU(),
+                conv_nd(dims, 96, 256, 3, padding=1, stride=2),
+                nn.SiLU(),
+                zero_module(conv_nd(dims, 256, model_channels, 3, padding=1))
+            )
+        elif self.bl_condition_num == 2:
+            self.input_hint_block_1 = TimestepEmbedSequential(
+                conv_nd(dims, bl_condition_channel[0], 16, 3, padding=1),
+                nn.SiLU(),
+                conv_nd(dims, 16, 16, 3, padding=1),
+                nn.SiLU(),
+                conv_nd(dims, 16, 32, 3, padding=1, stride=2),
+                nn.SiLU(),
+                conv_nd(dims, 32, 32, 3, padding=1),
+                nn.SiLU(),
+                conv_nd(dims, 32, 96, 3, padding=1, stride=2),
+                nn.SiLU(),
+                conv_nd(dims, 96, 96, 3, padding=1),
+                nn.SiLU(),
+                conv_nd(dims, 96, 256, 3, padding=1, stride=2),
+                nn.SiLU(),
+                zero_module(conv_nd(dims, 256, model_channels, 3, padding=1))
+            )
+            self.input_hint_block_2 = TimestepEmbedSequential(
+                conv_nd(dims, bl_condition_channel[1], 16, 3, padding=1),
+                nn.SiLU(),
+                conv_nd(dims, 16, 16, 3, padding=1),
+                nn.SiLU(),
+                conv_nd(dims, 16, 32, 3, padding=1, stride=2),
+                nn.SiLU(),
+                conv_nd(dims, 32, 32, 3, padding=1),
+                nn.SiLU(),
+                conv_nd(dims, 32, 96, 3, padding=1, stride=2),
+                nn.SiLU(),
+                conv_nd(dims, 96, 96, 3, padding=1),
+                nn.SiLU(),
+                conv_nd(dims, 96, 256, 3, padding=1, stride=2),
+                nn.SiLU(),
+                zero_module(conv_nd(dims, 256, model_channels, 3, padding=1))
+            )
+        elif self.bl_condition_num == 3:
+            self.input_hint_block_1 = TimestepEmbedSequential(
+                conv_nd(dims, bl_condition_channel[0], 16, 3, padding=1),
+                nn.SiLU(),
+                conv_nd(dims, 16, 16, 3, padding=1),
+                nn.SiLU(),
+                conv_nd(dims, 16, 32, 3, padding=1, stride=2),
+                nn.SiLU(),
+                conv_nd(dims, 32, 32, 3, padding=1),
+                nn.SiLU(),
+                conv_nd(dims, 32, 96, 3, padding=1, stride=2),
+                nn.SiLU(),
+                conv_nd(dims, 96, 96, 3, padding=1),
+                nn.SiLU(),
+                conv_nd(dims, 96, 256, 3, padding=1, stride=2),
+                nn.SiLU(),
+                zero_module(conv_nd(dims, 256, model_channels, 3, padding=1))
+            )
+            self.input_hint_block_2 = TimestepEmbedSequential(
+                conv_nd(dims, bl_condition_channel[1], 16, 3, padding=1),
+                nn.SiLU(),
+                conv_nd(dims, 16, 16, 3, padding=1),
+                nn.SiLU(),
+                conv_nd(dims, 16, 32, 3, padding=1, stride=2),
+                nn.SiLU(),
+                conv_nd(dims, 32, 32, 3, padding=1),
+                nn.SiLU(),
+                conv_nd(dims, 32, 96, 3, padding=1, stride=2),
+                nn.SiLU(),
+                conv_nd(dims, 96, 96, 3, padding=1),
+                nn.SiLU(),
+                conv_nd(dims, 96, 256, 3, padding=1, stride=2),
+                nn.SiLU(),
+                zero_module(conv_nd(dims, 256, model_channels, 3, padding=1))
+            )
+            self.input_hint_block_3 = TimestepEmbedSequential(
+                conv_nd(dims, bl_condition_channel[2], 16, 3, padding=1),
+                nn.SiLU(),
+                conv_nd(dims, 16, 16, 3, padding=1),
+                nn.SiLU(),
+                conv_nd(dims, 16, 32, 3, padding=1, stride=2),
+                nn.SiLU(),
+                conv_nd(dims, 32, 32, 3, padding=1),
+                nn.SiLU(),
+                conv_nd(dims, 32, 96, 3, padding=1, stride=2),
+                nn.SiLU(),
+                conv_nd(dims, 96, 96, 3, padding=1),
+                nn.SiLU(),
+                conv_nd(dims, 96, 256, 3, padding=1, stride=2),
+                nn.SiLU(),
+                zero_module(conv_nd(dims, 256, model_channels, 3, padding=1))
+            )
 
         self._feature_size = model_channels
         input_block_chans = [model_channels]
@@ -285,7 +487,48 @@ class ControlNet(nn.Module):
         t_emb = timestep_embedding(timesteps, self.model_channels, repeat_only=False)
         emb = self.time_embed(t_emb)
 
-        guided_hint = self.input_hint_block(hint, emb, context)
+
+        ###TODO:added by baolu
+        if self.bl_condition_num == 1:
+            guided_hint = self.input_hint_block(hint, emb, context)
+
+        elif self.bl_condition_num == 2:
+            hint_1 = hint[:,0:self.bl_condition_channel[0],:,:]
+            hint_2 = hint[:,self.bl_condition_channel[0]:self.bl_condition_channel[0]+self.bl_condition_channel[1],:,:]
+
+            guided_hint_1 = self.input_hint_block_1(hint_1, emb, context)
+            guided_hint_2 = self.input_hint_block_2(hint_2, emb, context)
+
+            guided_hint = guided_hint_1 + guided_hint_2
+            # print('11111111111111111111111111')
+        
+        elif self.bl_condition_num == 3:
+            hint_1 = hint[:,0:self.bl_condition_channel[0],:,:]
+            hint_2 = hint[:,self.bl_condition_channel[0]:self.bl_condition_channel[0]+self.bl_condition_channel[1],:,:]
+            hint_3 = hint[:,self.bl_condition_channel[0]+self.bl_condition_channel[1]:self.bl_condition_channel[0]+self.bl_condition_channel[1]+self.bl_condition_channel[2],:,:]
+
+            guided_hint_1 = self.input_hint_block_1(hint_1, emb, context)
+            guided_hint_2 = self.input_hint_block_2(hint_2, emb, context)
+            guided_hint_3 = self.input_hint_block_3(hint_3, emb, context)
+
+            #320
+            if self.with_condition_attentation == True:
+                guided_hint_cat = torch.cat((guided_hint_1,guided_hint_2,guided_hint_3),dim=1)
+                guided_hint_cat_after_attn = self.condition_attn(guided_hint_cat)
+                guided_hint_1 = guided_hint_cat_after_attn[:,0:320,:,:]
+                guided_hint_2 = guided_hint_cat_after_attn[:,320:640,:,:]
+                guided_hint_3 = guided_hint_cat_after_attn[:,640:960,:,:]
+
+
+            if self.with_gamma == True:
+                bs = hint.shape[0]
+                gamma = self.gamma.repeat(bs,1,1,1)
+                guided_hint = guided_hint_1 + guided_hint_2 + guided_hint_3 + gamma
+            else:
+                guided_hint = guided_hint_1 + guided_hint_2 + guided_hint_3 
+
+
+        #guided_hint = self.input_hint_block(hint, emb, context)
 
         outs = []
 
@@ -313,6 +556,165 @@ class ControlLDM(LatentDiffusion):
         self.control_key = control_key
         self.only_mid_control = only_mid_control
         self.control_scales = [1.0] * 13
+
+#############################TODO:jinlong: Detection loss of BEVdepth
+
+    # def shared_step(self, batch, **kwargs):
+    #     x, c = self.get_input(batch, self.first_stage_key)
+    #     loss = self(x, c)
+
+    #     #add the detection loss
+    #     x_noisy, model_output = loss[2], loss[3]
+    #     img_x = x_noisy-model_output
+    #     step = loss[4].item()
+
+
+    #     detection_loss, depth_loss = self.bevdepth_cal(batch, c, img_x, **kwargs)
+
+    #     mmd_loss = self.mmd_cal(batch, c, img_x, **kwargs)
+
+    #     ###############################################
+    #     scale_det = 0
+    #     scale_depth = 1
+    #     scale_mmd = 1
+    #     ###############################################
+
+    #     # print('step: ', step, 'bev_det_loss :   ', detection_loss.item()*scale_det,'  depth_loss: ', depth_loss.item()*scale_depth, 'mmd_loss :  ', mmd_loss.item()*scale_mmd)
+    #     if step<=20:##########50
+
+            
+    #         # total_loss = loss[0]*(detection_loss*scale_det)
+
+    #         # total_loss = loss[0]*(depth_loss*scale_depth) + mmd_loss*scale_mmd
+
+    #         # total_loss = loss[0]*(detection_loss*scale_det  +  depth_loss*scale_depth)
+
+    #         total_loss = loss[0]*(detection_loss*scale_det + depth_loss*scale_depth) + mmd_loss*scale_mmd
+
+
+    #         # total_loss = loss[0] + mmd_loss*scale_mmd
+ 
+    #         print('step: ', step, 'bev_det_loss :   ', detection_loss.item()*scale_det,'  depth_loss: ', depth_loss.item()*scale_depth, 'mmd_loss :  ', mmd_loss.item()*scale_mmd)
+    #         # print('step: ', step, 'mmd_loss :  ', mmd_loss.item()*scale_mmd)
+
+    #     else:
+
+
+    #         total_loss = loss[0]
+
+
+    #     return [total_loss,loss[1]]
+
+
+    def mmd_cal(self, batch, cond, img_x, **kwargs):
+        # batch_size=2
+        N=4
+
+        z, c = self.get_input(batch, self.first_stage_key, bs=N)
+
+        mmd_loss = mmdloss(img_x, z)
+
+        return mmd_loss
+
+
+    def bevdepth_cal(self, batch, cond, img_x, **kwargs):
+        batch_size=2
+        N=4
+        n_row=2
+        ddim_steps=50
+        z, c = self.get_input(batch, self.first_stage_key, bs=N)
+        n_row = min(z.shape[0], n_row)
+
+        ####0) mats, gt_boxes, gt_labels, depth_labels for detection loss
+        # mats, gt_boxes, gt_labels, depth_labels = batch[-4], batch[-3], batch[-2], batch[-1]
+        mats, gt_boxes, gt_labels, depth_labels = batch['mats'],batch['gt_boxes'],batch['gt_labels'],batch['depth_labels']
+
+
+        ####1) generate the img: samples
+        # ddim_sampler = DDIMSampler(self)
+        samples = img_x
+        batch_size, c, h, w = cond["c_concat"][0].shape
+        shape = (self.channels, h // 8, w // 8)
+        # samples, intermediates = ddim_sampler.sample(ddim_steps, batch_size, shape, cond, verbose=False, **kwargs)
+        x_samples = self.decode_first_stage(samples)
+
+        ###2) Prepare the six imgs：
+        from torchvision.transforms.functional import resize as tv_resize
+        from torchvision.transforms.functional import crop as tv_crop
+        device_gpu = x_samples.device
+        bevdepth_model.to(device_gpu)
+        mmdloss.to(device_gpu)
+
+
+        target_sample = x_samples
+        target_sample = tv_resize(target_sample, (396, 704))
+        target_sample = tv_crop(target_sample, 140, 0, 256, 704)
+        target_sample = target_sample.reshape(batch_size,1,1,3, 256, 704)
+        sweep_imgs=torch.zeros(batch_size, 1, 6, 3, 256, 704).to(device_gpu)
+        sweep_imgs[:,:,1:2,:,:,:] = target_sample
+
+
+
+        ####2) calculate the detection loss
+        depth_labels = depth_labels.squeeze()
+
+        new_mats = {}
+        for key, value in mats.items():
+            # 修改键和值
+            modified_value = value.squeeze(1)
+            new_mats[key] = modified_value
+            d_num,d_w, d_h =  depth_labels.shape
+            # d_w, d_h =  depth_labels.shape
+        depth_labels_z=torch.zeros_like(depth_labels).to(device_gpu)
+        depth_labels_z[1:2,:,:] = depth_labels[1:2,:,:] 
+        depth_labels_new = depth_labels_z.reshape(batch_size,1,6,d_w, d_h)
+        input = (sweep_imgs, new_mats, 1, 1, gt_boxes, gt_labels, depth_labels_new)
+
+        with torch.no_grad():
+            
+            detection_loss, depth_loss = bevdepth_model.training_step(input)
+
+        return detection_loss, depth_loss
+
+
+    def p_losses(self, x_start, cond, t, noise=None):
+        noise = default(noise, lambda: torch.randn_like(x_start))
+        x_noisy = self.q_sample(x_start=x_start, t=t, noise=noise)
+        model_output = self.apply_model(x_noisy, t, cond)
+
+        loss_dict = {}
+        prefix = 'train' if self.training else 'val'
+
+        if self.parameterization == "x0":
+            target = x_start
+        elif self.parameterization == "eps":
+            target = noise
+        elif self.parameterization == "v":
+            target = self.get_v(x_start, noise, t)
+        else:
+            raise NotImplementedError()
+
+        loss_simple = self.get_loss(model_output, target, mean=False).mean([1, 2, 3])
+        loss_dict.update({f'{prefix}/loss_simple': loss_simple.mean()})
+
+        logvar_t = self.logvar[t].to(self.device)
+        loss = loss_simple / torch.exp(logvar_t) + logvar_t
+        # loss = loss_simple / torch.exp(self.logvar) + self.logvar
+        if self.learn_logvar:
+            loss_dict.update({f'{prefix}/loss_gamma': loss.mean()})
+            loss_dict.update({'logvar': self.logvar.data.mean()})
+
+        loss = self.l_simple_weight * loss.mean()
+
+        loss_vlb = self.get_loss(model_output, target, mean=False).mean(dim=(1, 2, 3))
+        loss_vlb = (self.lvlb_weights[t] * loss_vlb).mean()
+        loss_dict.update({f'{prefix}/loss_vlb': loss_vlb})
+        loss += (self.original_elbo_weight * loss_vlb)
+        loss_dict.update({f'{prefix}/loss': loss})
+
+        return loss, loss_dict
+        # return loss, loss_dict, x_noisy, model_output, t
+
 
     @torch.no_grad()
     def get_input(self, batch, k, bs=None, *args, **kwargs):
@@ -379,6 +781,7 @@ class ControlLDM(LatentDiffusion):
             diffusion_grid = make_grid(diffusion_grid, nrow=diffusion_row.shape[0])
             log["diffusion_row"] = diffusion_grid
 
+        # if True:#############################
         if sample:
             # get denoise row
             samples, z_denoise_row = self.sample_log(cond={"c_concat": [c_cat], "c_crossattn": [c]},
