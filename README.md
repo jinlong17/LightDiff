@@ -4,7 +4,7 @@
  * @Author: Jinlong Li CSU PhD
  * @Date: 2024-07-10 20:59:10
  * @LastEditors: Jinlong Li CSU PhD
- * @LastEditTime: 2024-07-10 21:47:55
+ * @LastEditTime: 2024-07-10 21:50:27
 -->
 
 
@@ -32,7 +32,8 @@ Computer Vision and Pattern Recognition (CVPR), 2024
 ## [Project Page](https://genforce.github.io/freecontrol/) <br>
 
 
-![teaser](./images/lightdiff.png)
+
+![teaser](/images/lightdiff.png)
 
 
 ## Getting Started
