@@ -6,7 +6,7 @@
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
   <meta name="google-site-verification" content="JWOue1ZxNWRUMycXffn9ST4zeYFgqa01tDaUz4tDkAY" />
-  <title>FreeControl</title>
+  <title>LightDiff</title>
 
   <link href="./assets/bootstrap.min.css" rel="stylesheet">
   <link href="./assets/font.css" rel="stylesheet" type="text/css">
@@ -23,25 +23,28 @@
     <!-- <div class="logo">
       <a href="https://genforce.github.io/" target="_blank"><img src="./assets/genforce.png"></a>
     </div> -->
-    <div class="title", style="padding-top: 25pt;">  <!-- Set padding as 10 if title is with two lines. -->
+    <div class="title", style="padding-top: 10pt;">  <!-- Set padding as 10 if title is with two lines. -->
       <b>Light the Night</b>: A Multi-Condition Diffusion Framework for Unpaired Low-Light Enhancement in Autonomous Driving
 
     </div>
   </div>
   <!-- === Title Ends === -->
   <div class="author">
-    <a href="https://sichengmo.github.io/" target="_blank">Sicheng Mo</a><sup>1</sup>*,&nbsp
-    <a href="https://pages.cs.wisc.edu/~fmu/" target="_blank">Fangzhou Mu</a><sup>2</sup>*,&nbsp
-    <a href="https://kuanhenglin.github.io" target="_blank">Kuan Heng Lin</a><sup>1</sup>,&nbsp
-    <a href="https://scholar.google.ca/citations?user=YzXIxCwAAAAJ&hl=en" target="_blank">Yanli Liu</a><sup>3</sup>,&nbsp
-    <a href="#" target="_blank">Bochen Guan</a><sup>3</sup>,&nbsp
-    <a href="https://www.biostat.wisc.edu/~yli/" target="_blank">Yin Li</a><sup>2</sup>,&nbsp
-    <a href="https://boleizhou.github.io/" target="_blank">Bolei Zhou</a><sup>1</sup>
+    <a href="https://jinlong17.github.io/" target="_blank">Jinlong Li</a><sup>1</sup>*,&nbsp
+    <a href="" target="_blank">Baolu Li</a><sup>1</sup>*,&nbsp
+    <a href="" target="_blank">Zhengzhong Tu</a><sup>2</sup>,&nbsp
+    <a href="" target="_blank">Xinyu Liu</a><sup>1</sup>,&nbsp
+    <a href="#" target="_blank">Qing Guo</a><sup>3</sup>,&nbsp
+    <a href="" target="_blank">Felix Juefei-Xu</a><sup>4</sup>,&nbsp
+    <a href="https://derrickxunu.github.io/" target="_blank">Runsheng Xu</a><sup>5</sup>
+    <a href="https://scholar.google.com/citations?user=JnQts0kAAAAJ&hl=en" target="_blank">Hongkai Yu</a><sup>1</sup>
   </div>
   <div class="institution">
-     <sup>1</sup> UCLA,
-     <sup>2</sup> University of Wisconsin-Madison,
-     <sup>3</sup> Innopeak Technology, Inc
+    <sup>1</sup> Cleveland State University,
+    <sup>2</sup> University of Texas at Austin,
+    <sup>3</sup> A*STAR,
+    <sup>4</sup> New York University,
+    <sup>5</sup> UCLA
   </div>
 
   <div class="note">
@@ -49,54 +52,41 @@
   </div>
 
   <div class="link">
-    <a href="https://arxiv.org/abs/2312.07536" target="_blank">[Paper]</a>&nbsp;
-    <a href="https://github.com/genforce/freecontrol" target="_blank">[Code]</a>
+    <b>CVPR 2024</b>&nbsp;
+    <a href="https://openaccess.thecvf.com/content/CVPR2024/papers/Li_Light_the_Night_A_Multi-Condition_Diffusion_Framework_for_Unpaired_Low-Light_CVPR_2024_paper.pdf" target="_blank">[Paper]</a>&nbsp;
+    <a href="https://github.com/jinlong17/LightDiff" target="_blank">[Code]</a>
   </div>
   <div class="teaser">
-    <img src="assets/teaser1.jpg">
+    <img src="assets/cvpr/vis_1.png">
   </div>
-<!--  <div class="bodysmall">-->
-
-<!--    Training-free conditional control of Stable Diffusion. (a) FreeControl enables zero-shot control of pre-trained text-to-image-->
-<!--    diffusion models given an input condition image in any modality. (b) Compared to ControlNet, FreeControl exhibits-->
-<!--    better image-text alignment and does not require spatially-aligned conditions for controllable generation.-->
-
-<!--  </div>-->
 </div>
 <!-- === Home Section Ends === -->
+
+
+
+
 
 
 <!-- === Overview Section Starts === -->
 <div class="section">
   <div class="title">Overview</div>
   <div class="body">
-     In this work, we present FreeControl, a training-free approach for controllable T2I
-    generation that supports multiple conditions, architectures, and checkpoints simultaneously.
-    FreeControl designs structure guidance to facilitate the structure alignment with a guidance image, and appearance guidance to enable the
-    appearance sharing between images generated using the same seed.
-<!--    Extensive qualitative and quantitative-->
-<!--    experiments demonstrate the superior performance of FreeControl across a variety of pre-trained T2I models.-->
-<!--    Extensive qualitative and quantitative experiments demonstrate the superior performance of FreeControl across a variety of pre-trained T2I models.-->
-<!--    In particular,-->
-<!--    FreeControl facilitates convenient training-free control over many different architectures-->
-<!--    and checkpoints, allows the challenging input conditions on which most of the existing training-free methods fail,-->
-<!--    and achieves competitive synthesis quality with training-based approaches.-->
-<!--    Simple description of the project. Please don't directly copy and paste the abstract.-->
-<!--    Make the brief summary of your work in layman English, and explain why it is interesting and important.-->
-    FreeControl combines an analysis stage and a synthesis stage. In the analysis stage, FreeControl queries a
-    T2I model to generate as few as one seed image and then constructs a linear feature subspace from the generated images.
-    In the synthesis stage, FreeControl employs guidance in the subspace to facilitate structure alignment with a guidance
-    image, as well as appearance alignment between images generated with and without control.
-
+    <em>Without realistic paired day-night images, synthesizing dark driving images with vehicle lights is quite difficult, limiting the research in this field.</em>
+    This work introduces LightDiff, a domain-tailored framework designed to enhance the low-light image quality for autonomous driving applications, mitigating the challenges faced by vision-centric perception systems. By leveraging a dynamic data degradation process, a multi-condition  adapter for diverse input modalities, and perception-specific score guided reward modeling using reinforcement learning, LightDiff significantly enhances the image quality and 3D vehicle detection in nighttime on the nuScenes dataset. This innovation not only eliminates the need for extensive nighttime data but also ensures semantic integrity in image transformation, demonstrating its potential to enhance safety and reliability in autonomous driving scenarios. 
 
     <table width="100%" style="margin: 20pt 0; text-align: center;">
       <tr>
-        <td><img src="assets/pipeline.png" width="80%"></td>
+        <td><img src="assets/cvpr/lightdiff.png" width="85%"></td>
       </tr>
     </table>
-
-
   </div>
+
+  <div class="bodysmall">
+
+    The architecture of LightDiff. During the training stage, a Training Data Generation pipeline enables the acquisition of triple-modality data without any human-collected paired data. Our LightDiff employs a Multi-Condition Adapter to dynamically weight multiple conditions, coupled with LiDAR and Distribution Reward Modeling (LDRM), allowing for perception-oriented control.
+ 
+  </div>
+
 </div>
 <!-- === Overview Section Ends === -->
 
@@ -113,27 +103,14 @@
         <td><img src="assets/results/our_cond2img.png" width="100%"></td>
       </tr>
     </table>
-
-<!--    Any condition generation:-->
-<!--    <table width="100%" style="margin: 20pt 0; text-align: center;">-->
-<!--      <tr>-->
-<!--        <td><img src="assets/results/any_cond_gen.png" width="90%"></td>-->
-<!--      </tr>-->
-<!--    </table>-->
-
-<!--    Help art creation with custom models from <a href="https://civitai.com/models/89804/ip-design-or-3d" target="_blank">[link]</a>&nbsp;.-->
-<!--    <table width="100%" style="margin: 20pt 0; text-align: center;">-->
-<!--      <tr>-->
-<!--        <td><img src="assets/results/art_creation.png" width="100%"></td>-->
-<!--      </tr>-->
-<!--    </table>-->
-
-
   </div>
 </div>
 
-
 <!-- === Result Section Ends === -->
+
+
+
+
 
 <!-- === Result Section Starts === -->
 <div class="section">
@@ -147,18 +124,8 @@
         <td><img src="assets/results/any_cond_gen.png" width="90%"></td>
       </tr>
     </table>
-
-<!--    Help art creation with custom models from <a href="https://civitai.com/models/89804/ip-design-or-3d" target="_blank">[link]</a>&nbsp;.-->
-<!--    <table width="100%" style="margin: 20pt 0; text-align: center;">-->
-<!--      <tr>-->
-<!--        <td><img src="assets/results/art_creation.png" width="100%"></td>-->
-<!--      </tr>-->
-<!--    </table>-->
-
-
   </div>
 </div>
-
 
 <!-- === Result Section Ends === -->
 
@@ -169,21 +136,21 @@
 <div class="section">
   <div class="bibtex">BibTeX</div>
 <pre>
-@article{mo2023freecontrol,
-  title={FreeControl: Training-Free Spatial Control of Any Text-to-Image Diffusion Model with Any Condition},
-  author={Mo, Sicheng and Mu, Fangzhou and Lin, Kuan Heng and Liu, Yanli and Guan, Bochen and Li, Yin and Zhou, Bolei},
-  journal={arXiv preprint arXiv:2312.07536},
-  year={2023}
-}
+  @inproceedings{li2024light,
+    title={Light the Night: A Multi-Condition Diffusion Framework for Unpaired Low-Light Enhancement in Autonomous Driving},
+    author={Li, Jinlong and Li, Baolu and Tu, Zhengzhong and Liu, Xinyu and Guo, Qing and Juefei-Xu, Felix and Xu, Runsheng and Yu, Hongkai},
+    booktitle={Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition},
+    pages={15205--15215},
+    year={2024}
+  }
 </pre>
 
-  <!-- BZ: we should give other related work enough credits, -->
-  <!--     so please include some most relevant work and leave some comment to summarize work and the difference. -->
+
   <div class="ref">Related Work</div>
   <div class="citation">
     <div class="image"><img src="assets/controlnet.png"></div>
     <div class="comment">
-      <a href="#" target="_blank">
+      <a href="https://github.com/lllyasviel/ControlNet-v1-1-nightly" target="_blank">
         Lvmin Zhang, Anyi Rao, Maneesh Agrawala.
         Adding Conditional Control to Text-to-Image Diffusion Models.
         ICCV 2023.</a><br>
@@ -192,17 +159,18 @@
     </div>
   </div>
   <div class="citation">
-    <div class="image"><img src="assets/pnp.png"></div>
+    <div class="image"><img src="assets/cvpr/degrading.png"></div>
     <div class="comment">
-      <a href="#" target="_blank">
-        Narek Tumanyan, Michal Geyer, Shai Bagon, Tali Dekel.
-        Plug-and-Play Diffusion Features for Text-Driven Image-to-Image Translation.
-        CVPR 2023.</a><br>
+      <a href="https://openaccess.thecvf.com/content/ICCV2021/papers/Cui_Multitask_AET_With_Orthogonal_Tangent_Regularity_for_Dark_Object_Detection_ICCV_2021_paper.pdf" target="_blank">
+        Ziteng Cui, Guo-Jun Qi, Lin Gu, Shaodi You, Zenghui Zhang, Tatsuya Harada.
+        Multitask AET with orthogonal tangent regularity for dark object detection.
+        ICCV 2021.</a><br>
       <b>Comment:</b>
-      Training-free method for image-to-image translation via attention and conv feature injection.
-    </div>
+      Deploys Low-Illumination Degrading Transformations for Dark Object Detection.
+    </div> 
   </div>
 </div>
+
 <!-- === Reference Section Ends === -->
 
 
