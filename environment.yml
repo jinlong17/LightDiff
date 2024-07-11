@@ -1,4 +1,4 @@
-name: bev_baolu
+name: lightdiff
 channels:
   - pytorch
   - nvidia/label/cuda-11.8.0
