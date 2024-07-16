@@ -41,7 +41,7 @@ depth_labels_root = "/home/jinlongli/personal/DATASet/Nuscene_full/dataset_detec
 
 
 
-from cldm.low_dark import transfer_dark_swap_masks, transfer_dark_swap_masks_plus
+from cldm.low_dark import transfer_dark
 
 
 class MyDataset(Dataset):
@@ -69,6 +69,7 @@ class MyDataset(Dataset):
         daytime_img = cv2.cvtColor(daytime_img, cv2.COLOR_BGR2RGB)
         daytime_img = (daytime_img.astype(np.float32) / 127.5) - 1.0
 
+        conditions = []
 
         #  depth images condition
         condition_depth = cv2.imread(os.path.join(depth_resnet101_img_root,png_name))
@@ -80,7 +81,7 @@ class MyDataset(Dataset):
 
         #  faked nighttime images condition
         fake_img_condition = cv2.imread(os.path.join(daytime_img_root,jpg_name))
-        condition_night  = transfer_dark_swap_masks(fake_img_condition, mask_size=(20, 400)) #TODO:
+        condition_night  = transfer_dark(fake_img_condition) #TODO:
         condition_night = cv2.resize(condition_night, (512, 512))
         condition_night = cv2.cvtColor(condition_night, cv2.COLOR_BGR2RGB)
         condition_night = condition_night.astype(np.float32) / 255.0
@@ -89,29 +90,7 @@ class MyDataset(Dataset):
 
         conditions = np.concatenate(conditions, axis=2)
 
-    
-
-        # conditions = []
-        # for index in range(len(self.condition_select)):
-        #     Is_condition = self.condition_select[index]
-        #     if Is_condition == True:
-        #         if index !=2:###TODO:jinlong-------index !=2
-        #             if Is_png[index] == True:
-        #                 condition = cv2.imread(os.path.join(all_roots[index],png_name))
-        #             else:
-        #                 condition = cv2.imread(os.path.join(all_roots[index],jpg_name))
-        #         else:###TODO:jinlong
-        #                 fake_img_condition = cv2.imread(os.path.join(daytime_img_root,jpg_name))
-
-        #                 condition  = transfer_dark_swap_masks(fake_img_condition, mask_size=(20, 400))
-                
-        #         condition = cv2.resize(condition, (512, 512))
-        #         condition = cv2.cvtColor(condition, cv2.COLOR_BGR2RGB)
-        #         condition = condition.astype(np.float32) / 255.0
-        #         conditions.append(condition)
-            
-        # conditions = np.concatenate(conditions, axis=2)
-                
+         
 
         #---------------------> det labels
         instance_name = jpg_name.split('.')[0]

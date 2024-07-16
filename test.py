@@ -29,13 +29,29 @@ strength =1 #0.8
 scale = 3
 
 ddim_steps =50
+camera_name='CAM_FRONT'
+# Is_png = [1,0,0,0]
+depth_resnet101_img_root = "/home/jinlongli/personal/DATASet/Nuscene_full/dataset_depth_resnet101/trainval-1.0/samples/CAM_FRONT_depth_resnet101"  ###png 
+night_img_root = "/home/jinlongli/personal/DATASet/Nuscene_full/dataset/val/nighttime/samples/"+camera_name  ###jpg
+
+
+save_file='/home/jinlongli/personal/2.model_saved/cvpr2024_lighting_night/new_log'
+save_path = os.path.join(save_file,name, camera_name)
+if not os.path.exists(save_path):
+    os.makedirs(save_path)
+
+json_path = '/home/jinlongli/personal/DATASet/Nuscene_full/val_night_'+camera_name+'.json'
+
+a_prompt = 'best quality, extremely detailed, realistic style, daytime traffic scene, rich true color levels, pastel tones'
+n_prompt = 'lots of noise, overexposure,deformity, longbody, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality'
+num_samples = 1
+image_resolution = (512,512)
+detect_resolution = (512,512)
+guess_mode = False
+seed = 1000
+eta = 0
 
 #--------------------------------------------> Configs
-
-
-condition_select = OmegaConf.load(config_path).condition['condition_select']
-
-
 
 model = create_model(config_path).cpu()
 model.load_state_dict(load_state_dict(model_path, location='cuda'))#,strict=False
@@ -77,113 +93,52 @@ def process(input_image, prompt, a_prompt, n_prompt, num_samples, image_resoluti
     return results 
 
 
+with open(json_path, 'rt') as f:
+    for line in f:
+        data = json.loads(line)
+    
+        jpg_name = data['target']
+        png_name = data['source_1']
+        prompt = data['prompt']
+        # prompt = 'best quality, extremely detailed, realistic style, daytime traffic scene, rich true color levels, pastel tones'
 
-# camera_list = ['CAM_FRONT','CAM_FRONT_LEFT','CAM_FRONT_RIGHT','CAM_BACK','CAM_BACK_LEFT','CAM_BACK_RIGHT']
-camera_list = ['CAM_FRONT']
+        save_full_path = os.path.join(save_path,jpg_name)
+        if os.path.exists(save_full_path):
 
-for camera_name in camera_list:
-    # Is_png = [1,0,0,0]
-    depth_resnet101_img_root = "/home/jinlongli/personal/DATASet/Nuscene_full/dataset_depth_resnet101/trainval-1.0/samples/"+camera_name+"_depth_resnet101"  ###png 
-    # depth_lidar_img_root = "/home/jinlongli/personal/DATASet/Nuscene_full/dataset_lidar2depth/val/samples/"+camera_name  ###jpg
-    # fake_night_iccv21_img_root = "/home/jinlongli/personal/DATASet/Nuscene_full/dataset/val/nighttime/samples/"+camera_name  ###jpg
-    # fake_night_cyclegan_img_root = "/home/jinlongli/personal/DATASet/Nuscene_full/dataset/val/nighttime/samples/"+camera_name  ###jpg
-    # all_roots = [depth_resnet101_img_root,depth_lidar_img_root,fake_night_iccv21_img_root,fake_night_cyclegan_img_root]
+            print('the generated image is exists in  ', save_full_path)
 
+            continue
 
-    # save_path = '/home/jinlongli/personal/DATASet/Nuscene_full/baoluli/1.nomask_proposed_mmd_depth_det_0.001/'+camera_name####################
-
-
-    save_file='/home/jinlongli/personal/2.model_saved/cvpr2024_lighting_night/new_log'
-    save_path = os.path.join(save_file,name, camera_name)
-    if not os.path.exists(save_path):
-        os.makedirs(save_path)
-
-    json_path = '/home/jinlongli/personal/DATASet/Nuscene_full/val_night_'+camera_name+'.json'
-
-
-    # #1
-    # strength = 0.8
-    # #2
-    # scale = 3
-    # #3
-    # ddim_steps = 60
-
-    #prompt = ''#'a white truck driving down a street next to a tall building'
-    a_prompt = 'best quality, extremely detailed, realistic style, daytime traffic scene, rich true color levels, pastel tones'
-    n_prompt = 'lots of noise, overexposure,deformity, longbody, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality'
-    num_samples = 1
-    image_resolution = (512,512)
-    detect_resolution = (512,512)
-    guess_mode = False
-    seed = 1000
-    eta = 0
-
-
-    #1 depth 
-    #2 night
-    #3 depth + night
-    #inference_num = 3 
-
-    #index = 0
-    with open(json_path, 'rt') as f:
-        for line in f:
-            data = json.loads(line)
+        conditions = []
         
-            jpg_name = data['target']
-            png_name = data['source_1']
-            # prompt = data['prompt']
-            prompt = 'best quality, extremely detailed, realistic style, daytime traffic scene, rich true color levels, pastel tones'
+        #  depth images condition
+        condition_depth = cv2.imread(os.path.join(depth_resnet101_img_root,png_name))
+        condition_depth = cv2.resize(condition_depth, (512, 512))
+        condition_depth = cv2.cvtColor(condition_depth, cv2.COLOR_BGR2RGB)
+        condition_depth = condition_depth.astype(np.float32) / 255.0
+        conditions.append(condition_depth)
 
+        #  faked nighttime images condition
+        night_img_condition = cv2.imread(os.path.join(night_img_root,jpg_name))
+        condition_night = cv2.resize(night_img_condition, (512, 512))
+        condition_night = cv2.cvtColor(condition_night, cv2.COLOR_BGR2RGB)
+        condition_night = condition_night.astype(np.float32) / 255.0
+        conditions.append(condition_night)
 
-            save_full_path = os.path.join(save_path,jpg_name)
-            if os.path.exists(save_full_path):
+        conditions = np.concatenate(conditions, axis=2)
 
-                print('the generated image is exists in  ', save_full_path)
-
-                continue
-
-
-            conditions = []
-            for index in range(len(condition_select)):
-                Is_condition = condition_select[index]
-                if Is_condition == True:
-
-                    if Is_png[index] == True:
-                        condition = cv2.imread(os.path.join(all_roots[index],png_name))
-                    else:
-                        condition = cv2.imread(os.path.join(all_roots[index],jpg_name))
-                    # if index !=2:###TODO:jinlong-------index !=2
-                    #     if Is_png[index] == True:
-                    #         condition = cv2.imread(os.path.join(all_roots[index],png_name))
-                    #     else:
-                    #         condition = cv2.imread(os.path.join(all_roots[index],jpg_name))
-                    # else:###TODO:jinlong
-                    #         fake_img_condition = cv2.imread(os.path.join(all_roots[index],jpg_name))
-                    #         # condition  = transfer_dark_swap_masks(fake_img_condition, mask_size=(20, 400))
-                    #         # condition = transfer_dark_swap_masks_plus(fake_img_condition, mask_size=(20, 400), night_img_Path=nuscene_nighttime)
-                    #         condition = transfer_inference(fake_img_condition)
-
-
-                    condition = cv2.resize(condition, (512, 512))
-                    condition = cv2.cvtColor(condition, cv2.COLOR_BGR2RGB)
-                    condition = condition.astype(np.float32) / 255.0
-                    conditions.append(condition)
-            conditions = np.concatenate(conditions, axis=2)
+        input_image = conditions
+        input_image = torch.from_numpy(input_image.copy()).float().cuda() #/ 255.0
+        input_image = torch.stack([input_image for _ in range(num_samples)], dim=0)
+        input_image = einops.rearrange(input_image, 'b h w c -> b c h w').clone()
 
 
 
-            input_image = conditions
-            input_image = torch.from_numpy(input_image.copy()).float().cuda() #/ 255.0
-            input_image = torch.stack([input_image for _ in range(num_samples)], dim=0)
-            input_image = einops.rearrange(input_image, 'b h w c -> b c h w').clone()
+        ret = process(input_image, prompt, a_prompt, n_prompt, num_samples, image_resolution, detect_resolution, ddim_steps, guess_mode, strength, scale, seed, eta)
+        final_img = ret[0]
 
-
-
-            ret = process(input_image, prompt, a_prompt, n_prompt, num_samples, image_resolution, detect_resolution, ddim_steps, guess_mode, strength, scale, seed, eta)
-            final_img = ret[0]
-
-            
-            # save_full_path = os.path.join(save_path,jpg_name)
-            cv2.imwrite(save_full_path, final_img)
-            print(jpg_name)
+        
+        # save_full_path = os.path.join(save_path,jpg_name)
+        cv2.imwrite(save_full_path, final_img)
+        print(jpg_name)
 
