@@ -4,7 +4,7 @@
  * @Author: Jinlong Li CSU PhD
  * @Date: 2024-07-10 20:59:10
  * @LastEditors: Jinlong Li CSU PhD
- * @LastEditTime: 2024-07-10 21:50:27
+ * @LastEditTime: 2024-07-15 22:01:10
 -->
 
 
@@ -39,20 +39,31 @@ Computer Vision and Pattern Recognition (CVPR), 2024
 ## Getting Started
 
 **Environment Setup**
-- We proovide a [conda env file](environment.yml) for environment setup. 
+- We provide a [conda env file](environment.yml) for environment setup. 
 ```bash
 conda env create -f environment.yml
 conda activate lightdiff
 ```
 
-- Following the installation of [BEVDepth](https://github.com/Megvii-BaseDetection/BEVDepth) step by step. 
+- Following the installation of [BEVDepth](https://github.com/Megvii-BaseDetection/BEVDepth) step by step.
+
+**Note:** you can first install the environment of [BEVDepth](https://github.com/Megvii-BaseDetection/BEVDepth), after you successful install it, then you can install the environment of [ControlNet](https://github.com/lllyasviel/ControlNet-v1-1-nightly).
 
 
 **Model Training**
 
+The training code is in "train.py" and the dataset code in "", which are actually surprisingly simple as follow with ControlNet. you need to set path in these python files.
+
+```bash
+python train.py
+```
+
 
 **Model testing**
 
+```bash
+python test.py
+```
 
 ## DATA Preparation
 
@@ -76,11 +87,10 @@ We select all 616 daytime scenes of the nuScenes training set containing total *
 **Instruction prompt**
 
 
+
+
 **Depth map**
 
-
-
-###################
 
 
 

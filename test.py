@@ -21,7 +21,7 @@ from cldm.low_dark import transfer_dark_swap_masks, transfer_dark_swap_masks_plu
 
 #--------------------------------------------> Configs
 config_path='./models/lightdiff_v15.yaml'
-model_path='/home/jinlongli/personal/personal_jinlongli/2.model_saved/cvpr2024_lighting_night/1.model_save/2024.01/3.proposed_point_5_f_day_locked/lightning_logs/version_0/checkpoints/epoch=104-step=162435.ckpt'
+model_path='/checkpoints'
 name='3.proposed_point_5_f_day_locked_104_sample_one_1'
 
 strength =1 #0.8
@@ -177,27 +177,6 @@ for camera_name in camera_list:
             input_image = torch.stack([input_image for _ in range(num_samples)], dim=0)
             input_image = einops.rearrange(input_image, 'b h w c -> b c h w').clone()
 
-
-
-            ############################################
-
-            # n = 10
-            # strength_list = np.linspace(0,2,n)
-            # scale_list = np.linspace(0,30,n)
-
-            # horizontally_list = []
-            # for i in range(n):
-            #     vertically_list = []
-            #     for j in range(n):
-            #         strength = strength_list[i]
-            #         scale = scale_list[j]
-            #         ret = process(input_image, prompt, a_prompt, n_prompt, num_samples, image_resolution, detect_resolution, ddim_steps, guess_mode, strength, scale, seed, eta)
-            #         vertically_list.append(ret[0])
-            #     vertically_stacked = np.vstack(vertically_list)
-            #     horizontally_list.append(vertically_stacked)
-            # final_img = np.hstack(horizontally_list)
-
-            ######################################################
 
 
             ret = process(input_image, prompt, a_prompt, n_prompt, num_samples, image_resolution, detect_resolution, ddim_steps, guess_mode, strength, scale, seed, eta)
