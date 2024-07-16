@@ -1,6 +1,13 @@
+'''
+Descripttion: 
+version: 
+Author: Jinlong Li CSU PhD
+Date: 2024-07-15 21:12:25
+LastEditors: Jinlong Li CSU PhD
+LastEditTime: 2024-07-15 21:13:35
+'''
 import torch
 from torch import nn
-
 
 class RBF(nn.Module):
 
@@ -9,7 +16,6 @@ class RBF(nn.Module):
         v1 = torch.arange(n_kernels)
         v3 = v1 - n_kernels // 2
         self.bandwidth_multipliers = mul_factor ** (torch.arange(n_kernels) - n_kernels // 2)
-        # self.bandwidth_multipliers = self.bandwidth_multipliers.to(device)
         self.bandwidth_multipliers = self.bandwidth_multipliers
         self.bandwidth = bandwidth
 
@@ -39,8 +45,6 @@ class MMDLoss(nn.Module):
         self.kernel = kernel
 
     def forward(self, X, Y):
-        # X = X.view(-1).unsqueeze(0)
-        # Y = Y.view(-1).unsqueeze(0)
         self.kernel = self.kernel.to(X.device)
         K = self.kernel(torch.vstack([X, Y]))
 

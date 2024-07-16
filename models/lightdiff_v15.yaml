@@ -1,5 +1,5 @@
 condition:
-  condition_select: [1,1,1,0]  #added by bl
+  condition_select: [1,0,1,0]  #added by bl
 model:
   target: cldm.cldm.ControlLDM
   params:
@@ -37,10 +37,10 @@ model:
         transformer_depth: 1
         context_dim: 1024
         legacy: False
-        bl_condition_num: 3  #added by bl
-        bl_condition_channel: [3,3,3] #[3,3,3]  #added by bl
-        with_condition_attentation: True #True  #added by bl
-        with_gamma: True #True #added by bl
+        bl_condition_num: 2 #light diffusion
+        bl_condition_channel: [3,3]   #light diffusion
+        with_condition_attention: True   #light diffusion
+        with_gamma: True 
 
     unet_config:
       target: cldm.cldm.ControlledUnetModel

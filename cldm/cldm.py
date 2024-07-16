@@ -19,11 +19,11 @@ from ldm.util import log_txt_as_img, exists, instantiate_from_config,default
 from ldm.models.diffusion.ddim import DDIMSampler
 
 
-####################TODO:jinlong
+#--------------------------------------------->LDRM and Multi-Condition Adapter
 import os
 from argparse import ArgumentParser
 
-from cldm.mmd_loss import MMDLoss
+from cldm.LDRM import MMDLoss
 
 import pytorch_lightning as pl
 
@@ -34,10 +34,10 @@ import torch
 
 mmdloss = MMDLoss(4)
 
-class CAM_Module(nn.Module):
-    """ Channel attention module"""
+class MC_Adapter(nn.Module):
+    """ Channel attention module  from https://github.com/junfu1115/DANet/"""
     def __init__(self, in_dim):
-        super(CAM_Module, self).__init__()
+        super(MC_Adapter, self).__init__()
         self.chanel_in = in_dim
 
 
@@ -66,51 +66,61 @@ class CAM_Module(nn.Module):
         return out
     
 
+class BEVDepthConfig:
+    def __init__(self, extra_trainer_config_args=None, exp_name='base_exp'):
+        if extra_trainer_config_args is None:
+            extra_trainer_config_args = {}
+        self.extra_trainer_config_args = extra_trainer_config_args
+        self.exp_name = exp_name
+        self.args = self.parse_args()
+        
+    def parse_args(self):
+        parent_parser = ArgumentParser(add_help=False)
+        parent_parser = pl.Trainer.add_argparse_args(parent_parser)
+        parent_parser.add_argument('-e',
+                                   '--evaluate',
+                                   dest='evaluate',
+                                   action='store_true',
+                                   default=True,
+                                   help='evaluate model on validation set')
+        parent_parser.add_argument('-p',
+                                   '--predict',
+                                   dest='predict',
+                                   action='store_true',
+                                   help='predict model on testing set')
+        parent_parser.add_argument('-b', '--batch_size_per_device', default=1, type=int)
+        parent_parser.add_argument('--seed',
+                                   type=int,
+                                   default=1,
+                                   help='seed for initializing training.')
+        parent_parser.add_argument('--ckpt_path',
+                                   default='/BEVDepth/BEVDepth_checkpoint/bev_depth_lss_r50_256x704_128x128_24e_2key.pth',  
+                                   type=str)
 
-extra_trainer_config_args={}
-exp_name='base_exp'
-
-parent_parser = ArgumentParser(add_help=False)
-parent_parser = pl.Trainer.add_argparse_args(parent_parser)
-parent_parser.add_argument('-e',
-                        '--evaluate',
-                        dest='evaluate',
-                        action='store_true',
-                        default=True,
-                        help='evaluate model on validation set')
-parent_parser.add_argument('-p',
-                        '--predict',
-                        dest='predict',
-                        action='store_true',
-                        #    default=True,
-                        help='predict model on testing set')
-parent_parser.add_argument('-b', '--batch_size_per_device', default=1, type=int)
-parent_parser.add_argument('--seed',
-                        type=int,
-                        default=1,
-                        help='seed for initializing training.')
-parent_parser.add_argument('--ckpt_path',default='/home/jinlongli/1.Detection_Set/Dark_Diffusion/ControlNet/BEVDepth/BEVDepth_checkpoint/bev_depth_lss_r50_256x704_128x128_24e_2key.pth',  type=str)
+        parser = BEVDepthLightningModel.add_model_specific_args(parent_parser)
+        parser.set_defaults(profiler='simple',
+                            deterministic=False,
+                            max_epochs=self.extra_trainer_config_args.get('epochs', 24),
+                            accelerator='ddp',
+                            num_sanity_val_steps=0,
+                            gradient_clip_val=5,
+                            limit_val_batches=0,
+                            enable_checkpointing=True,
+                            precision=16,
+                            default_root_dir=os.path.join('./outputs/', self.exp_name))
+        args = parser.parse_args()
+        args.gpus = 1
+        return args
+    
+    def create_model(self):
+        return BEVDepthLightningModel(**vars(self.args))
 
 
-parser = BEVDepthLightningModel.add_model_specific_args(parent_parser)
-parser.set_defaults(profiler='simple',
-                    deterministic=False,
-                    max_epochs=extra_trainer_config_args.get('epochs', 24),
-                    accelerator='ddp',
-                    num_sanity_val_steps=0,
-                    gradient_clip_val=5,
-                    limit_val_batches=0,
-                    enable_checkpointing=True,
-                    precision=16,
-                    default_root_dir=os.path.join('./outputs/', exp_name))
-args = parser.parse_args()
-args.gpus=1
+config = BEVDepthConfig()
+bevdepth_model = config.create_model()
 
-args_1 = args
+#--------------------------------------------->LDRM and Multi-Condition Adapter
 
-#########################TODO: jinlong 
-bevdepth_model = BEVDepthLightningModel(**vars(args_1))
-# bevdepth_model = []
 
 
 
@@ -172,7 +182,7 @@ class ControlNet(nn.Module):
             use_linear_in_transformer=False,
             bl_condition_num = 1,
             bl_condition_channel = (3),
-            with_condition_attentation = False,
+            with_condition_attention = False,
             with_gamma = False
     ):
         super().__init__()
@@ -180,10 +190,10 @@ class ControlNet(nn.Module):
         ###TODO:added by baolu
         self.bl_condition_num = bl_condition_num
         self.bl_condition_channel = bl_condition_channel
-        self.with_condition_attentation = with_condition_attentation
+        self.with_condition_attentation = with_condition_attention
         self.with_gamma = with_gamma
         if self.with_condition_attentation == True:
-            self.condition_attn = CAM_Module(in_dim = 320 * self.bl_condition_num)
+            self.condition_attn = MC_Adapter(in_dim = 320 * self.bl_condition_num)
             
         if self.with_gamma == True:
             self.gamma = nn.Parameter(torch.randn(320,64,64),requires_grad=True)
@@ -500,7 +510,6 @@ class ControlNet(nn.Module):
             guided_hint_2 = self.input_hint_block_2(hint_2, emb, context)
 
             guided_hint = guided_hint_1 + guided_hint_2
-            # print('11111111111111111111111111')
         
         elif self.bl_condition_num == 3:
             hint_1 = hint[:,0:self.bl_condition_channel[0],:,:]
@@ -557,53 +566,36 @@ class ControlLDM(LatentDiffusion):
         self.only_mid_control = only_mid_control
         self.control_scales = [1.0] * 13
 
-#############################TODO:jinlong: Detection loss of BEVdepth
+    ###TODO:jinlong:  added loss of BEVdepth
 
-    # def shared_step(self, batch, **kwargs):
-    #     x, c = self.get_input(batch, self.first_stage_key)
-    #     loss = self(x, c)
+    def shared_step(self, batch, **kwargs):
+        x, c = self.get_input(batch, self.first_stage_key)
+        loss = self(x, c)
 
-    #     #add the detection loss
-    #     x_noisy, model_output = loss[2], loss[3]
-    #     img_x = x_noisy-model_output
-    #     step = loss[4].item()
-
-
-    #     detection_loss, depth_loss = self.bevdepth_cal(batch, c, img_x, **kwargs)
-
-    #     mmd_loss = self.mmd_cal(batch, c, img_x, **kwargs)
-
-    #     ###############################################
-    #     scale_det = 0
-    #     scale_depth = 1
-    #     scale_mmd = 1
-    #     ###############################################
-
-    #     # print('step: ', step, 'bev_det_loss :   ', detection_loss.item()*scale_det,'  depth_loss: ', depth_loss.item()*scale_depth, 'mmd_loss :  ', mmd_loss.item()*scale_mmd)
-    #     if step<=20:##########50
-
-            
-    #         # total_loss = loss[0]*(detection_loss*scale_det)
-
-    #         # total_loss = loss[0]*(depth_loss*scale_depth) + mmd_loss*scale_mmd
-
-    #         # total_loss = loss[0]*(detection_loss*scale_det  +  depth_loss*scale_depth)
-
-    #         total_loss = loss[0]*(detection_loss*scale_det + depth_loss*scale_depth) + mmd_loss*scale_mmd
+        #add the detection loss
+        x_noisy, model_output = loss[2], loss[3]
+        img_x = x_noisy-model_output
+        step = loss[4].item()
 
 
-    #         # total_loss = loss[0] + mmd_loss*scale_mmd
- 
-    #         print('step: ', step, 'bev_det_loss :   ', detection_loss.item()*scale_det,'  depth_loss: ', depth_loss.item()*scale_depth, 'mmd_loss :  ', mmd_loss.item()*scale_mmd)
-    #         # print('step: ', step, 'mmd_loss :  ', mmd_loss.item()*scale_mmd)
+        detection_loss, depth_loss = self.bevdepth_cal(batch, c, img_x, **kwargs)
 
-    #     else:
+        mmd_loss = self.mmd_cal(batch, c, img_x, **kwargs)
+
+        ###############################################
+        scale_det = 0
+        scale_depth = 1
+        scale_mmd = 1
+        ###############################################
+
+        if step<=50:
+            total_loss = loss[0]*(detection_loss*scale_det + depth_loss*scale_depth) + mmd_loss*scale_mmd
+            print('step: ', step, 'bev_det_loss :   ', detection_loss.item()*scale_det,'  depth_loss: ', depth_loss.item()*scale_depth, 'mmd_loss :  ', mmd_loss.item()*scale_mmd)
+        else:
+            total_loss = loss[0]
 
 
-    #         total_loss = loss[0]
-
-
-    #     return [total_loss,loss[1]]
+        return [total_loss,loss[1]]
 
 
     def mmd_cal(self, batch, cond, img_x, **kwargs):
@@ -660,7 +652,7 @@ class ControlLDM(LatentDiffusion):
 
         new_mats = {}
         for key, value in mats.items():
-            # 修改键和值
+            #
             modified_value = value.squeeze(1)
             new_mats[key] = modified_value
             d_num,d_w, d_h =  depth_labels.shape
@@ -712,8 +704,8 @@ class ControlLDM(LatentDiffusion):
         loss += (self.original_elbo_weight * loss_vlb)
         loss_dict.update({f'{prefix}/loss': loss})
 
-        return loss, loss_dict
-        # return loss, loss_dict, x_noisy, model_output, t
+        # return loss, loss_dict
+        return loss, loss_dict, x_noisy, model_output, t
 
 
     @torch.no_grad()
@@ -781,7 +773,6 @@ class ControlLDM(LatentDiffusion):
             diffusion_grid = make_grid(diffusion_grid, nrow=diffusion_row.shape[0])
             log["diffusion_row"] = diffusion_grid
 
-        # if True:#############################
         if sample:
             # get denoise row
             samples, z_denoise_row = self.sample_log(cond={"c_concat": [c_cat], "c_crossattn": [c]},
