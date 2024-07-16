@@ -28,7 +28,7 @@ from cldm.LDRM import MMDLoss
 import pytorch_lightning as pl
 
 # from BEVDepth.bevdepth.callbacks.ema import EMACallback
-from BEVDepth.bevdepth.utils.torch_dist import all_gather_object, synchronize
+# from BEVDepth.bevdepth.utils.torch_dist import all_gather_object, synchronize
 from BEVDepth.bevdepth.exps.nuscenes.base_exp import BEVDepthLightningModel
 import torch 
 
@@ -120,7 +120,6 @@ config = BEVDepthConfig()
 bevdepth_model = config.create_model()
 
 #--------------------------------------------->LDRM and Multi-Condition Adapter
-
 
 
 
