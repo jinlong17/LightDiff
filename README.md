@@ -4,7 +4,7 @@
  * @Author: Jinlong Li CSU PhD
  * @Date: 2024-07-10 20:59:10
  * @LastEditors: Jinlong Li CSU PhD
- * @LastEditTime: 2024-07-17 22:30:45
+ * @LastEditTime: 2024-07-17 22:40:51
 -->
 
 
@@ -113,7 +113,14 @@ We obtain tepth map for training and testing images by [High Resolution Depth Ma
 
 We generate corresponding degraded dark light image in the training stage based on code from the [ICCV_MAET](https://github.com/cuiziteng/ICCV_MAET), which is integrated into the data process in the training stage. 
 
+_Althrough the degraded images may not pre028 cisely replicate the authentic appearance of real nighttime,
+029 our synthesized data distribution (t-SNE) is much closer to real nighttime compared to real daytime, as shown below:_
 
+
+
+<!-- ![teaser](/images/SNE.png) -->
+
+<img src="./images/SNE.png" alt="Image description" width="900" style="display: block; margin: 0 auto;">
 
 
 ## Citation
