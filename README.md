@@ -4,7 +4,7 @@
  * @Author: Jinlong Li CSU PhD
  * @Date: 2024-07-10 20:59:10
  * @LastEditors: Jinlong Li CSU PhD
- * @LastEditTime: 2024-07-15 22:01:10
+ * @LastEditTime: 2024-07-17 21:55:33
 -->
 
 
@@ -68,7 +68,20 @@ python test.py
 ## DATA Preparation
 
 
-- Download nuScenes official dataset.
+- Download [nuScenes official dataset]().
+
+The directory will be as follows.
+
+```
+── nuScenes
+│   ├── maps
+│   ├── samples
+│   ├── sweeps
+│   ├── v1.0-test
+|   ├── v1.0-trainval
+```
+
+- Then you can use the python files in the folder [nuscenes](./nuscenes) to process the nuScenes dataset, then you can obtain Nuscenes images of Training set and Testing set.
 
 
 **Training set**
@@ -80,17 +93,25 @@ We select all 616 daytime scenes of the nuScenes training set containing total *
 **Testing set**
 
 
-## Multi-modality Data Generation
+We select all 15 nighttime scenes in the nuScenes validation set containing total 602 camera front images are as our testing set.
 
+## Multi-modality Data Generation
 
 
 **Instruction prompt**
 
-
+We obtain instruction prompts by [LENS](https://github.com/ContextualAI/lens).
 
 
 **Depth map**
 
+
+We obtain tepth map for training and testing images by [High Resolution Depth Maps](https://github.com/thygate/stable-diffusion-webui-depthmap-script?tab=readme-ov-file#high-resolution-depth-maps-for-stable-diffusion-webui).
+
+
+**Corresponding degraded dark light image for Training Set**
+
+We generate corresponding degraded dark light image in the training stage based on code from the [ICCV_MAET](https://github.com/cuiziteng/ICCV_MAET), which is integrated into the data process in the training stage. 
 
 
 
