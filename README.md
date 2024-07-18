@@ -4,7 +4,7 @@
  * @Author: Jinlong Li CSU PhD
  * @Date: 2024-07-10 20:59:10
  * @LastEditors: Jinlong Li CSU PhD
- * @LastEditTime: 2024-07-17 21:55:33
+ * @LastEditTime: 2024-07-17 22:40:51
 -->
 
 
@@ -13,7 +13,7 @@
 
 
 [![paper](https://img.shields.io/badge/arXiv-Paper-<COLOR>.svg)](https://arxiv.org/pdf/2404.04804)
-[![supplement](https://img.shields.io/badge/Supplementary-Material-red)]()
+[![supplement](https://img.shields.io/badge/Supplementary-Material-red)](./images/Supplementary_CVPR24_Light_the_Night.pdf)
 <!-- [![video](https://img.shields.io/badge/Video-Presentation-F9D371)]() -->
 
 
@@ -113,7 +113,14 @@ We obtain tepth map for training and testing images by [High Resolution Depth Ma
 
 We generate corresponding degraded dark light image in the training stage based on code from the [ICCV_MAET](https://github.com/cuiziteng/ICCV_MAET), which is integrated into the data process in the training stage. 
 
+_Althrough the degraded images may not pre028 cisely replicate the authentic appearance of real nighttime,
+029 our synthesized data distribution (t-SNE) is much closer to real nighttime compared to real daytime, as shown below:_
 
+
+
+<!-- ![teaser](/images/SNE.png) -->
+
+<img src="./images/SNE.png" alt="Image description" width="900" style="display: block; margin: 0 auto;">
 
 
 ## Citation
