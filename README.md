@@ -13,7 +13,7 @@
 
 
 [![paper](https://img.shields.io/badge/arXiv-Paper-<COLOR>.svg)](https://arxiv.org/pdf/2404.04804)
-[![supplement](https://img.shields.io/badge/Supplementary-Material-red)](./image/Supplementary_CVPR24_Light_the_Night.pdf)
+[![supplement](https://img.shields.io/badge/Supplementary-Material-red)](./images/Supplementary_CVPR24_Light_the_Night.pdf)
 <!-- [![video](https://img.shields.io/badge/Video-Presentation-F9D371)]() -->
 
 
