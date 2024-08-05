@@ -93,7 +93,7 @@ We select all 616 daytime scenes of the nuScenes training set containing total *
 **Testing set**
 
 
-We select all 15 nighttime scenes in the nuScenes validation set containing total 602 camera front images are as our testing set.
+We select all 15 nighttime scenes in the nuScenes validation set containing total 602 camera front images are as our testing set.  For your convenience， you can download the data from [validation set](https://drive.google.com/drive/folders/1nG5j3h7b8ERXezzprt1a4dRUHS-TpMeW?usp=sharing).
 
 ## Multi-modality Data Generation
 
