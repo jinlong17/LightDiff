@@ -4,7 +4,7 @@
  * @Author: Jinlong Li CSU PhD
  * @Date: 2024-07-10 20:59:10
  * @LastEditors: Jinlong Li CSU PhD
- * @LastEditTime: 2024-07-17 22:40:51
+ * @LastEditTime: 2024-08-16 13:25:57
 -->
 
 
@@ -64,6 +64,12 @@ python train.py
 ```bash
 python test.py
 ```
+
+
+
+**iImage quality testing**
+
+
 
 ## DATA Preparation
 
