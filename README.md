@@ -4,7 +4,7 @@
  * @Author: Jinlong Li CSU PhD
  * @Date: 2024-07-10 20:59:10
  * @LastEditors: Jinlong Li CSU PhD
- * @LastEditTime: 2024-08-16 13:25:57
+ * @LastEditTime: 2024-08-16 17:19:56
 -->
 
 
@@ -61,13 +61,21 @@ python train.py
 
 **Model testing**
 
+
+
 ```bash
 python test.py
 ```
 
 
 
-**iImage quality testing**
+**Image Quality Evaluation**
+
+You need to set path in "image_noreference_score.py".
+
+```bash
+python image_noreference_score.py
+```
 
 
 

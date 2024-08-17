@@ -12,7 +12,9 @@ print(pyiqa.list_models())
 
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
-path = '/home/baoluli/personal/1.dataset/Nuscene_full/final_test/proposed_nomask_sd_unlocked/CAM_FRONT'
+
+###### PATHs
+path = '../CAM_FRONT'
 
 
 ###
