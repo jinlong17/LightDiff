@@ -4,7 +4,7 @@
  * @Author: Jinlong Li CSU PhD
  * @Date: 2024-07-10 20:59:10
  * @LastEditors: Jinlong Li CSU PhD
- * @LastEditTime: 2024-08-16 17:25:32
+ * @LastEditTime: 2024-08-20 14:22:25
 -->
 
 
@@ -61,16 +61,16 @@ python train.py
 
 **Model testing**
 
-+ **[Image enhancement]**: We have prepared a nighttime dataset from Nuscenes for low-light enhancement. Please download the [testing data](https://drive.google.com/drive/folders/1nG5j3h7b8ERXezzprt1a4dRUHS-TpMeW?usp=sharing) and the our [model checkpoint](https://csuohio-my.sharepoint.com/:u:/g/personal/2819040_vikes_csuohio_edu/EYIrVBctW3ZIu_NqC93whaABhyJgLUz2eAnd53Aw2lYKCg?e=M1TaU2). Remember to set the path in the training file accordingly.
++ **[Image enhancement]**: We have prepared a nighttime dataset from Nuscenes for low-light enhancement. Please download the [testing data](https://drive.google.com/drive/folders/1nG5j3h7b8ERXezzprt1a4dRUHS-TpMeW?usp=sharing) and the our [model checkpoint](https://csuohio-my.sharepoint.com/:u:/g/personal/2819040_vikes_csuohio_edu/EYIrVBctW3ZIu_NqC93whaABhyJgLUz2eAnd53Aw2lYKCg?e=M1TaU2). Remember to set the path in the training file accordingly. 
 
 
-+ **[3D object detection]**
++ **[3D object detection]**: We utilize two 3D perception state-of-the-art methods [BEVDepth](https://github.com/Megvii-BaseDetection/BEVDepth) and [BEVStereo](https://github.com/Megvii-BaseDetection/BEVStereo) trained on the nuScenes daytime training set.
 
 
 
 
 ```bash
-python test.py
+python test.py   # using config file in ./models/lightdiff_v15.yaml
 ```
 
 
@@ -126,15 +126,14 @@ We obtain instruction prompts by [LENS](https://github.com/ContextualAI/lens).
 **Depth map**
 
 
-We obtain tepth map for training and testing images by [High Resolution Depth Maps](https://github.com/thygate/stable-diffusion-webui-depthmap-script?tab=readme-ov-file#high-resolution-depth-maps-for-stable-diffusion-webui).
+We obtain depth map for training and testing images by [High Resolution Depth Maps](https://github.com/thygate/stable-diffusion-webui-depthmap-script?tab=readme-ov-file#high-resolution-depth-maps-for-stable-diffusion-webui).
 
 
 **Corresponding degraded dark light image for Training Set**
 
 We generate corresponding degraded dark light image in the training stage based on code from the [ICCV_MAET](https://github.com/cuiziteng/ICCV_MAET), which is integrated into the data process in the training stage. 
 
-_Althrough the degraded images may not pre028 cisely replicate the authentic appearance of real nighttime,
-029 our synthesized data distribution (t-SNE) is much closer to real nighttime compared to real daytime, as shown below:_
+_Althrough the degraded images may not precisely replicate the authentic appearance of real nighttime, our synthesized data distribution (t-SNE) is much closer to real nighttime compared to real daytime, as shown below:_
 
 
 
