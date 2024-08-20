@@ -20,8 +20,8 @@ from cldm.low_dark import transfer_dark_swap_masks, transfer_dark_swap_masks_plu
 
 
 #--------------------------------------------> Configs
-config_path='./models/lightdiff_v15.yaml'
-model_path='/checkpoints'
+config_path='./models/lightdiff_v15.yaml'  # using this config file !!!!!!
+model_path='XXX/checkpoints'  # path to the  checkpoint
 name='3.proposed_point_5_f_day_locked_104_sample_one_1'
 
 strength =1 #0.8
@@ -31,16 +31,17 @@ scale = 3
 ddim_steps =50
 camera_name='CAM_FRONT'
 # Is_png = [1,0,0,0]
-depth_resnet101_img_root = "/home/jinlongli/personal/DATASet/Nuscene_full/dataset_depth_resnet101/trainval-1.0/samples/CAM_FRONT_depth_resnet101"  ###png 
-night_img_root = "/home/jinlongli/personal/DATASet/Nuscene_full/dataset/val/nighttime/samples/"+camera_name  ###jpg
+depth_resnet101_img_root = "XXX/CAM_FRONT_depth_resnet101"  ###png   # set the path to depth
+night_img_root = "XXX/samples/"+camera_name  ###jpg  # set the path to image
+ 
 
-
-save_file='/home/jinlongli/personal/2.model_saved/cvpr2024_lighting_night/new_log'
+save_file='XXX/save path'  # set your path
+name='name'   # set your save path
 save_path = os.path.join(save_file,name, camera_name)
 if not os.path.exists(save_path):
     os.makedirs(save_path)
 
-json_path = '/home/jinlongli/personal/DATASet/Nuscene_full/val_night_'+camera_name+'.json'
+json_path = 'XXX/val_night_CAM_FRONT.json'   ## set the path to json file
 
 a_prompt = 'best quality, extremely detailed, realistic style, daytime traffic scene, rich true color levels, pastel tones'
 n_prompt = 'lots of noise, overexposure,deformity, longbody, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality'
@@ -108,7 +109,7 @@ with open(json_path, 'rt') as f:
             print('the generated image is exists in  ', save_full_path)
 
             continue
-
+ 
         conditions = []
         
         #  depth images condition
