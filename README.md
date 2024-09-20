@@ -29,7 +29,7 @@ This is the official implementation of CVPR2024 paper Light the Night: A Multi-C
 Computer Vision and Pattern Recognition (CVPR), 2024
 
 
-## [Project Page](https://genforce.github.io/freecontrol/) <br>
+## [Project Page](https://jinlong17.github.io/LightDiff/) <br>
 
 
 
